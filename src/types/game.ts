@@ -18,7 +18,7 @@ export interface Jogador {
 }
 
 export interface Sala {
-  status: 'aguardando' | 'distribuindo' | 'apostando' | 'jogando' | 'fim_rodada';
+  status: 'aguardando' | 'distribuindo' | 'apostando' | 'jogando' | 'processando_vaza' | 'fim_rodada';
   rodadaAtual: number; // 1, 2, 3...
   vira: Carta | null; // A carta que define a manilha
   manilha: ValorCarta | null;

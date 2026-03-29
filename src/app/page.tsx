@@ -1,7 +1,7 @@
 // src/app/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ref, push, set, get, child } from 'firebase/database';
 import { db } from '../lib/firebase';
@@ -12,6 +12,17 @@ export default function Home() {
   const [codigoSala, setCodigoSala] = useState('');
   const [carregando, setCarregando] = useState(false);
   const router = useRouter();
+
+  // NOVO: Lê a URL quando a página carrega para ver se tem um convite
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const parametrosUrl = new URLSearchParams(window.location.search);
+      const codigoConvite = parametrosUrl.get('codigo');
+      if (codigoConvite) {
+        setCodigoSala(codigoConvite);
+      }
+    }
+  }, []);
 
   const criarSala = async () => {
     if (!nome.trim()) return alert('Digite seu nome!');

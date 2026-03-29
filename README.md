@@ -2,8 +2,6 @@
 
 Um jogo de cartas multiplayer em tempo real inspirado no clássico "Foda-se / Oh Hell". Blefe, estratégia e a regra de ouro: na primeira rodada, sua carta fica na testa!
 
-![Capa do Jogo](https://i.imgur.com/SuaImagemAqui.png) *(Recomendo tirar um print da tela do lobby e colar o link aqui depois)*
-
 ## 🎮 Como Funciona o Jogo
 
 O objetivo do jogo é prever exatamente quantas vazas (rodadas) você vai ganhar com a mão que recebeu. 

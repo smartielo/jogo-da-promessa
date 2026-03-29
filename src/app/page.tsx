@@ -1,5 +1,5 @@
 // src/app/page.tsx
-'use client'; // Necessário pois vamos usar estados (useState) e navegação no lado do cliente
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -13,21 +13,18 @@ export default function Home() {
   const [carregando, setCarregando] = useState(false);
   const router = useRouter();
 
-  // Função para criar uma nova sala
   const criarSala = async () => {
     if (!nome.trim()) return alert('Digite seu nome!');
     setCarregando(true);
 
     try {
-      // Cria uma referência vazia na lista de "salas" (isso gera um ID único automático)
       const novaSalaRef = push(ref(db, 'salas'));
       const salaId = novaSalaRef.key;
 
       if (!salaId) throw new Error('Erro ao gerar ID da sala');
 
-      // Cria o objeto do jogador criador (o "host")
       const novoJogador: Jogador = {
-        id: 'host', // Para simplificar agora, o criador é o host
+        id: 'host', 
         nome: nome,
         vidas: 5,
         promessa: null,
@@ -35,7 +32,6 @@ export default function Home() {
         cartas: []
       };
 
-      // Monta o estado inicial da sala baseado na nossa interface
       const estadoInicialSala: Sala = {
         status: 'aguardando',
         rodadaAtual: 1,
@@ -48,10 +44,7 @@ export default function Home() {
         mesa: []
       };
 
-      // Salva a sala no Firebase
       await set(novaSalaRef, estadoInicialSala);
-
-      // Redireciona o usuário para a página da sala
       router.push(`/sala/${salaId}?jogadorId=host`);
     } catch (error) {
       console.error(error);
@@ -60,14 +53,12 @@ export default function Home() {
     }
   };
 
-  // Função para entrar em uma sala existente
   const entrarSala = async () => {
     if (!nome.trim() || !codigoSala.trim()) return alert('Digite seu nome e o código da sala!');
     setCarregando(true);
 
     try {
       const dbRef = ref(db);
-      // Busca a sala no banco de dados para ver se ela existe
       const snapshot = await get(child(dbRef, `salas/${codigoSala}`));
 
       if (snapshot.exists()) {
@@ -79,7 +70,6 @@ export default function Home() {
           return;
         }
 
-        // Gera um ID simples para o novo jogador
         const novoJogadorId = `jogador_${Date.now()}`;
         
         const novoJogador: Jogador = {
@@ -91,10 +81,7 @@ export default function Home() {
           cartas: []
         };
 
-        // Adiciona o jogador na sala lá no Firebase
         await set(ref(db, `salas/${codigoSala}/jogadores/${novoJogadorId}`), novoJogador);
-
-        // Redireciona para a sala
         router.push(`/sala/${codigoSala}?jogadorId=${novoJogadorId}`);
       } else {
         alert('Sala não encontrada!');
@@ -108,56 +95,89 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-red-600 to-orange-500 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md flex flex-col gap-6">
-        
-        <div className="text-center">
-          <h1 className="text-4xl font-black text-red-600 tracking-tighter transform -skew-x-6">
-            A PROMESSA
-          </h1>
-          <p className="text-gray-500 font-medium mt-1">O jogo de cartas e blefe</p>
+    <main className="h-screen w-screen bg-slate-900 flex flex-col items-center overflow-hidden text-slate-100 font-sans">
+      
+      {/* CABEÇALHO ELEGANTE */}
+      <header className="w-full bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-center z-20 shadow-md flex-shrink-0">
+        <div className="flex flex-col flex-shrink-0 text-center">
+          <h1 className="text-xl font-black italic text-emerald-400 leading-tight">A PROMESSA</h1>
+          <span className="text-xs text-slate-400 -mt-1 select-none">Lobby Oficial</span>
         </div>
+      </header>
 
-        <div className="flex flex-col gap-2 mt-4">
-          <label className="font-bold text-gray-700">Seu Nome / Apelido</label>
-          <input 
-            type="text" 
-            className="border-2 border-gray-300 rounded-lg p-3 text-lg font-bold text-gray-800 focus:border-red-500 focus:outline-none transition-colors"
-            placeholder="Ex: Gabriel"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-          />
-        </div>
+      {/* ÁREA CENTRAL COM O FELTRO VERDE */}
+      <div className="flex-1 w-full p-4 md:p-8 flex flex-col items-center justify-center relative overflow-y-auto">
+        {/* Aumentei o padding interno aqui (p-8 md:p-16) e reduzi o max-w para dar respiro nas bordas */}
+        <div className="w-full max-w-5xl min-h-[500px] md:min-h-[600px] bg-emerald-800 rounded-[3rem] md:rounded-[4rem] border-[8px] md:border-[12px] border-slate-700 shadow-inner flex flex-col relative overflow-hidden p-8 md:p-16 justify-center gap-8 md:gap-12">
+          
+          {/* TOPO DA MESA: Título Centralizado */}
+          <div className="text-center bg-slate-900/60 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] backdrop-blur-md w-fit mx-auto shadow-2xl border border-slate-600/50">
+            <h2 className="text-3xl md:text-5xl font-black italic text-white leading-tight select-none">A PROMESSA</h2>
+            <p className="text-emerald-400 font-bold mt-2 text-sm md:text-lg">Cartas, Blefe e Pura Estratégia</p>
+          </div>
 
-        <hr className="my-2 border-gray-200" />
+          {/* BASE DA MESA: Painéis de Ação */}
+          <div className="w-full flex flex-col md:flex-row items-stretch justify-center gap-6 md:gap-10 relative z-10 px-2 md:px-4">
 
-        <div className="flex flex-col gap-4">
-          <button 
-            onClick={criarSala}
-            disabled={carregando}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl text-xl shadow-[0_4px_0_rgb(185,28,28)] active:shadow-[0_0px_0_rgb(185,28,28)] active:translate-y-1 transition-all disabled:opacity-50"
-          >
-            {carregando ? 'Criando...' : 'Criar Nova Sala'}
-          </button>
+            {/* PAINEL: CRIAR SALA */}
+            {/* Diminuí o max-w de max-w-md para max-w-[360px] */}
+            <div className="bg-slate-900/80 p-6 md:p-8 rounded-[2rem] border border-slate-600/50 shadow-2xl flex-1 max-w-[360px] w-full mx-auto flex flex-col gap-4">
+              <div className="text-center mb-1">
+                <p className="font-black text-xl text-white">Criar Sala</p>
+                <p className="text-slate-400 text-xs mt-1">Seja o host e convide amigos</p>
+              </div>
 
-          <div className="flex items-center gap-2 mt-2">
-            <input 
-              type="text" 
-              className="border-2 border-gray-300 rounded-lg p-3 font-bold text-gray-800 flex-1 focus:border-orange-500 focus:outline-none uppercase"
-              placeholder="CÓDIGO DA SALA"
-              value={codigoSala}
-              onChange={(e) => setCodigoSala(e.target.value.trim())}
-            />
-            <button 
-              onClick={entrarSala}
-              disabled={carregando}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-[0_4px_0_rgb(194,65,12)] active:shadow-[0_0px_0_rgb(194,65,12)] active:translate-y-1 transition-all disabled:opacity-50"
-            >
-              Entrar
-            </button>
+              <input
+                type="text"
+                className="w-full border-2 border-slate-600 rounded-xl p-3 text-base font-bold text-white bg-slate-800 focus:border-emerald-500 focus:outline-none transition-colors shadow-inner text-center"
+                placeholder="Seu Nome / Apelido"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+              />
+
+              <button
+                onClick={criarSala}
+                disabled={carregando}
+                className="w-full mt-auto bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black py-3 rounded-xl text-lg shadow-[0_5px_0_rgb(4,120,87)] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50"
+              >
+                {carregando ? 'Criando...' : 'Nova Partida'}
+              </button>
+            </div>
+
+            {/* PAINEL: ENTRAR EM SALA */}
+            <div className="bg-slate-900/80 p-6 md:p-8 rounded-[2rem] border border-slate-600/50 shadow-2xl flex-1 max-w-[360px] w-full mx-auto flex flex-col gap-4">
+              <div className="text-center mb-1">
+                <p className="font-black text-xl text-white">Entrar na Sala</p>
+                <p className="text-slate-400 text-xs mt-1">Junte-se a uma partida existente</p>
+              </div>
+
+              <input
+                type="text"
+                className="w-full border-2 border-slate-600 rounded-xl p-3 text-base font-bold text-white bg-slate-800 focus:border-orange-500 focus:outline-none transition-colors shadow-inner text-center"
+                placeholder="Seu Nome / Apelido"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+              />
+
+              <input
+                type="text"
+                className="w-full border-2 border-slate-600 rounded-xl p-3 text-base font-black text-orange-400 bg-slate-800 focus:border-orange-500 focus:outline-none transition-colors shadow-inner text-center uppercase tracking-widest"
+                placeholder="CÓDIGO"
+                value={codigoSala}
+                onChange={(e) => setCodigoSala(e.target.value.trim().toUpperCase())}
+              />
+
+              <button
+                onClick={entrarSala}
+                disabled={carregando}
+                className="w-full mt-auto bg-orange-500 hover:bg-orange-400 text-white font-black py-3 rounded-xl text-lg shadow-[0_5px_0_rgb(194,65,12)] active:shadow-[0_0px_0_rgb(194,65,12)] active:translate-y-1 transition-all disabled:opacity-50"
+              >
+                {carregando ? 'Entrando...' : 'Entrar Agora'}
+              </button>
+            </div>
+
           </div>
         </div>
-
       </div>
     </main>
   );

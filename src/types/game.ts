@@ -21,6 +21,7 @@ export interface Sala {
   status: 'aguardando' | 'distribuindo' | 'apostando' | 'jogando' | 'fim_rodada';
   rodadaAtual: number; // 1, 2, 3...
   vira: Carta | null; // A carta que define a manilha
+  manilha: ValorCarta | null;
   turnoDe: string; // ID do jogador que deve jogar agora
   jogadores: Record<string, Jogador>; // Dicionário de jogadores indexado pelo ID
   mesa: { jogadorId: string; carta: Carta }[]; // Cartas jogadas na vaza atual

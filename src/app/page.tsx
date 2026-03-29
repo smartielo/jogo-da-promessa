@@ -40,6 +40,7 @@ export default function Home() {
         status: 'aguardando',
         rodadaAtual: 1,
         vira: null,
+        manilha: null,
         turnoDe: 'host',
         jogadores: {
           host: novoJogador

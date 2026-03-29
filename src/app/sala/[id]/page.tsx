@@ -17,7 +17,6 @@ export default function SalaDeJogo() {
 
   const [sala, setSala] = useState<Sala | null>(null);
   
-  // Novos estados para o Chat
   const [novaMensagem, setNovaMensagem] = useState('');
   const [chatAbertoMobile, setChatAbertoMobile] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -32,7 +31,6 @@ export default function SalaDeJogo() {
     return () => { off(salaRef); unsubscribe(); };
   }, [salaId]);
 
-  // Rola o chat para baixo automaticamente quando chega mensagem
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [sala?.chat]);
@@ -48,7 +46,6 @@ export default function SalaDeJogo() {
   const jogadorAtual = sala.jogadores[jogadorId || ''];
   const ehHost = jogadorId === 'host'; 
 
-  // --- FUNÇÕES DO JOGO ---
   const iniciarPartida = async () => {
     if (!sala || !salaId) return;
     const baralho = embaralhar(criarBaralho());
@@ -79,7 +76,6 @@ export default function SalaDeJogo() {
     catch (error) { console.error("Erro ao fazer promessa:", error); }
   };
 
-  // --- FUNÇÕES EXTRAS (Chat e Compartilhar) ---
   const copiarLink = () => {
     navigator.clipboard.writeText(window.location.href);
     alert('Link copiado! Mande para seus amigos no WhatsApp.');
@@ -104,7 +100,6 @@ export default function SalaDeJogo() {
   const precisaFazerPromessa = sala.status === 'apostando' && (jogadorAtual?.promessa === undefined || jogadorAtual?.promessa === -1);
   const fezPromessa = typeof jogadorAtual?.promessa === 'number' && jogadorAtual.promessa >= 0;
 
-  // Renderização das mensagens do chat transformando o objeto do Firebase em Array ordenado
   const mensagensChat = sala.chat ? Object.values(sala.chat).sort((a: any, b: any) => a.timestamp - b.timestamp) : [];
 
   return (
@@ -136,7 +131,6 @@ export default function SalaDeJogo() {
               </div>
           </div>
 
-          {/* Botão de abrir Chat no Mobile */}
           <button onClick={() => setChatAbertoMobile(!chatAbertoMobile)} className="lg:hidden bg-slate-700 p-2 rounded-lg text-xl border border-slate-600">
             💬
           </button>
@@ -155,7 +149,6 @@ export default function SalaDeJogo() {
               <p className="text-slate-300 mb-6 text-sm md:text-base">Aguardando a galera entrar...</p>
               
               <div className="flex flex-col gap-3 items-center">
-                {/* NOVO BOTÃO DE COMPARTILHAR */}
                 <button onClick={copiarLink} className="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold py-3 px-6 rounded-xl text-sm md:text-base border border-emerald-500/30 shadow-md active:scale-95 transition-all flex items-center gap-2 w-full justify-center">
                   <span>📋</span> Copiar Link Convite
                 </button>
@@ -179,7 +172,7 @@ export default function SalaDeJogo() {
               </div>
             </div>
           ) : (
-            /* O JOGO EM SI DIVIDIDO EM 3 FAIXAS (LINHAS) */
+            /* O JOGO EM SI */
             <div className="flex-1 w-full h-full flex flex-col justify-between p-4 relative">
               
               {/* LINHA 1: OPONENTES (TOPO) */}
@@ -236,7 +229,6 @@ export default function SalaDeJogo() {
                 {/* Contêiner das cartas */}
                 <div className="flex justify-center h-24 md:h-36 items-end origin-bottom scale-[0.8] md:scale-100 relative">
                   
-                  {/* === O MODAL REPOSICIONADO PARA PERTO DA CARTA === */}
                   {precisaFazerPromessa && (
                     <div className="absolute bottom-[110%] md:bottom-1/2 md:translate-y-[-20%] left-[80%] md:left-[110%] z-50 bg-slate-900 p-4 rounded-2xl shadow-2xl border-2 border-yellow-500 flex flex-col items-center gap-2 animate-bounce-in w-max">
                       <p className="text-yellow-400 font-black uppercase text-xs text-center leading-tight">Quantas você faz?</p>
@@ -257,7 +249,6 @@ export default function SalaDeJogo() {
                   ))}
                 </div>
 
-                {/* Badge mobile fica à direita para balancear */}
                 {fezPromessa && (
                   <div className="md:hidden bg-slate-900/80 px-2 py-1 rounded-lg text-center border border-slate-600/50 shadow-xl self-end mb-1">
                     <p className="font-bold text-[9px] text-white">Promessa</p>
@@ -271,10 +262,9 @@ export default function SalaDeJogo() {
           )}
         </div>
 
-        {/* === PAINEL DE CHAT (Lateral) === */}
-        {/* No Desktop ele é fixo na direita. No Mobile ele desliza por cima da tela. */}
+        {/* === PAINEL DE CHAT (Lateral) - AGORA COM OVERFLOW HIDDEN === */}
         <div className={`
-          absolute lg:relative top-0 right-0 h-full w-[85%] sm:w-80 bg-slate-800 lg:rounded-[2rem] border-l lg:border-[6px] border-slate-700 flex flex-col shadow-2xl transition-transform z-40
+          absolute lg:relative top-0 right-0 h-full w-[85%] sm:w-80 bg-slate-800 rounded-[1.5rem] lg:rounded-[2rem] border-[4px] lg:border-[6px] border-slate-700 flex flex-col shadow-2xl transition-transform z-40 overflow-hidden
           ${chatAbertoMobile ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
         `}>
           {/* Header do Chat */}
@@ -284,7 +274,7 @@ export default function SalaDeJogo() {
           </div>
 
           {/* Área de Mensagens */}
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 scroll-smooth">
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 scroll-smooth bg-slate-800">
             {mensagensChat.length === 0 ? (
               <p className="text-center text-slate-500 text-sm italic mt-4">Nenhuma mensagem ainda. Mande um salve!</p>
             ) : (
@@ -300,7 +290,6 @@ export default function SalaDeJogo() {
                 )
               })
             )}
-            {/* Div fantasma para forçar o scroll para baixo */}
             <div ref={chatEndRef} />
           </div>
 

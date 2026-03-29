@@ -72,9 +72,9 @@ export default function SalaDeJogo() {
   const fezPromessa = typeof jogadorAtual?.promessa === 'number' && jogadorAtual.promessa >= 0;
 
   return (
-    <main className="h-screen w-screen bg-slate-900 flex flex-col overflow-hidden text-slate-100 font-sans">
+    <main className="h-screen w-screen bg-slate-900 flex flex-col overflow-hidden text-slate-100 font-sans relative">
       
-      {/* CABEÇALHO UNIFICADO E GRUPADO NO CENTRO (CORRIGIDO) */}
+      {/* CABEÇALHO UNIFICADO E GRUPADO NO CENTRO */}
       <header className="w-full bg-slate-800 border-b border-slate-700 px-4 py-2 flex items-center z-20 shadow-md flex-shrink-0">
         
         {/* Container Centralizado com gap fixo */}
@@ -82,8 +82,8 @@ export default function SalaDeJogo() {
           
           {/* Bloco Título */}
           <div className="flex flex-col flex-shrink-0 px-2">
-            <h1 className="text-xl font-black italic text-emerald-400 leading-tight">A PROMESSA</h1>
-            <span className="text-[11px] text-slate-400 font-mono -mt-1">ID: {salaId}</span>
+            <h1 className="text-xl font-black italic text-emerald-400 leading-tight select-none">A PROMESSA</h1>
+            <span className="text-[11px] text-slate-400 font-mono -mt-1 select-all">ID: {salaId}</span>
           </div>
 
           {/* Divisor Vertical */}
@@ -93,7 +93,7 @@ export default function SalaDeJogo() {
 
           {/* Bloco Manilha */}
           {sala.status !== 'aguardando' && sala.manilha && (
-            <div className="flex items-center gap-1.5 px-2">
+            <div className="flex items-center gap-1.5 px-2 select-none">
               <span className="text-[11px] text-slate-400 uppercase tracking-widest">Manilha</span>
               <span className="text-xl md:text-2xl font-extrabold text-yellow-400 leading-none">{sala.manilha}</span>
             </div>
@@ -103,12 +103,11 @@ export default function SalaDeJogo() {
           <div className="w-px h-8 bg-slate-700" />
 
           {/* Bloco Suas Informações */}
-          <div className="flex items-center gap-2 px-1">
+          <div className="flex items-center gap-2 px-1 select-none">
               <div className="text-right flex flex-col items-end leading-tight pr-1">
                   <span className="font-extrabold text-sm md:text-base text-white whitespace-nowrap">{jogadorAtual?.nome}</span>
                   <span className="text-[11px] text-emerald-400 font-bold -mt-0.5">Vidas: {jogadorAtual?.vidas}</span>
               </div>
-              {/* Espaço para Avatar */}
               <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-slate-700 border border-emerald-400 flex items-center justify-center text-emerald-400 font-bold flex-shrink-0 shadow">
                   {jogadorAtual?.nome[0].toUpperCase()}
               </div>
@@ -118,11 +117,11 @@ export default function SalaDeJogo() {
       </header>
 
       {/* ÁREA DA MESA COM GRID PARA EVITAR SOBREPOSIÇÃO */}
-      <div className="flex-1 w-full max-w-7xl mx-auto p-2 md:p-6 flex flex-col relative">
+      <div className="flex-1 w-full max-w-7xl mx-auto p-2 md:p-6 flex flex-col relative z-0">
         <div className="w-full h-full bg-emerald-800 rounded-[2rem] md:rounded-[4rem] border-[6px] md:border-8 border-slate-700 shadow-inner flex flex-col relative overflow-hidden">
 
           {sala.status === 'aguardando' ? (
-            <div className="m-auto text-center bg-slate-900/60 p-6 md:p-10 rounded-3xl backdrop-blur-md">
+            <div className="m-auto text-center bg-slate-900/60 p-6 md:p-10 rounded-3xl backdrop-blur-md z-10">
               <h3 className="text-2xl md:text-3xl font-bold mb-2">Aguardando jogadores</h3>
               <p className="text-slate-300 mb-6 text-sm md:text-base">A mesa está sendo preparada.</p>
               {ehHost ? (
@@ -132,11 +131,11 @@ export default function SalaDeJogo() {
               ) : (
                 <p className="text-emerald-400 font-bold animate-pulse">Aguardando host...</p>
               )}
-              <div className="mt-8 flex flex-wrap justify-center gap-2">
+              <div className="mt-8 flex flex-wrap justify-center gap-2 overflow-y-auto max-h-[150px] p-2">
                 {Object.values(sala.jogadores).map((jog) => (
-                  <span key={jog.id} className="bg-slate-800 px-3 py-1.5 rounded-full text-xs md:text-sm font-bold flex items-center gap-2">
+                  <span key={jog.id} className="bg-slate-800 px-3 py-1.5 rounded-full text-xs md:text-sm font-bold flex items-center gap-2 overflow-hidden flex-shrink-0 shadow-md border border-slate-700/50">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    {jog.nome} {jog.id === jogadorId ? <span className="text-emerald-500 font-normal">(Você)</span> : ''}
+                    <span className="truncate max-w-[100px]">{jog.nome}</span> {jog.id === jogadorId ? <span className="text-emerald-500 font-normal">(Você)</span> : ''}
                   </span>
                 ))}
               </div>
@@ -146,7 +145,7 @@ export default function SalaDeJogo() {
             <div className="flex-1 w-full h-full flex flex-col justify-between p-4 md:p-8 relative">
               
               {/* LINHA 1: OPONENTES (TOPO) */}
-              <div className="h-[30%] w-full flex justify-center items-start gap-4 md:gap-16">
+              <div className="h-[30%] w-full flex justify-center items-start gap-4 md:gap-16 relative z-0">
                 {Object.values(sala.jogadores).filter(j => j.id !== jogadorId).map(oponente => (
                   <div key={oponente.id} className="flex flex-col items-center">
                     <div className="flex justify-center h-20 md:h-28">
@@ -158,7 +157,7 @@ export default function SalaDeJogo() {
                     </div>
                     {/* Badge Oponente Simplificada */}
                     <div className="bg-slate-900/80 px-3 py-1 rounded-lg text-center mt-[-10px] md:mt-[-5px] z-10 border border-slate-600/50 shadow-lg">
-                      <p className="font-bold text-[10px] md:text-xs leading-tight whitespace-nowrap">{oponente.nome}</p>
+                      <p className="font-bold text-[10px] md:text-xs leading-tight truncate max-w-[80px] text-white">{oponente.nome}</p>
                       {typeof oponente.promessa === 'number' && oponente.promessa >= 0 ? (
                         <p className="text-yellow-400 text-[9px] md:text-[10px] uppercase font-black">Faz {oponente.promessa}</p>
                       ) : (
@@ -200,20 +199,29 @@ export default function SalaDeJogo() {
                 )}
               </div>
 
-              {/* LINHA 3: SUA MÃO (BASE) */}
-              <div className="h-[30%] w-full flex flex-col items-center justify-end relative z-10">
+              {/* LINHA 3: SUA MÃO (BASE) - MODIFICADO PARA HORIZONTAL E CORES DO OPONENTE */}
+              <div className="h-[30%] w-full flex items-end justify-center relative z-10 mt-auto px-4 pb-2 md:pb-4 gap-4 md:gap-6">
+                
+                {/* Badge da promessa no LADO ESQUERDO (Ancorado no pé da tela) */}
                 {fezPromessa && (
-                  <div className="bg-yellow-400/10 border border-yellow-400/50 text-yellow-400 px-4 py-1 rounded-full text-[10px] md:text-xs font-bold mb-2 md:mb-4">
-                    Você prometeu fazer {jogadorAtual.promessa}
+                  <div className="bg-slate-900/80 px-3 py-1.5 rounded-lg text-center border border-slate-600/50 shadow-xl self-end mb-1 md:mb-0">
+                    <p className="font-bold text-[10px] md:text-xs text-white">Sua Promessa</p>
+                    <p className="text-yellow-400 text-[9px] md:text-[10px] uppercase font-black">Você Faz: {jogadorAtual.promessa}</p>
                   </div>
                 )}
-                <div className="flex justify-center h-24 md:h-36 items-end relative z-10 mt-auto">
+
+                {/* Contêiner das cartas (Abaixado e Centralizado) */}
+                <div className="flex justify-center h-24 md:h-36 items-end origin-bottom scale-[0.8] md:scale-100 mt-auto">
                   {jogadorAtual?.cartas?.map((carta, index) => (
-                    <div key={index} className={`transform origin-bottom scale-[0.8] md:scale-100 transition-transform hover:-translate-y-4 cursor-pointer ${index > 0 ? '-ml-8 md:-ml-12' : ''}`}>
+                    <div key={index} className={`transform transition-transform hover:-translate-y-4 cursor-pointer ${index > 0 ? '-ml-8 md:-ml-12' : ''}`}>
                       <Carta carta={carta} virada={sala.rodadaAtual === 1} className="shadow-[0_-10px_20px_rgba(0,0,0,0.3)]" />
                     </div>
                   ))}
                 </div>
+
+                {/* Placeholder para balancear o Flex no lado direito se necessário (opcional) */}
+                {fezPromessa && <div className="w-[80px] hidden md:block" />}
+
               </div>
 
             </div>

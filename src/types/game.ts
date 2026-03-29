@@ -25,4 +25,5 @@ export interface Sala {
   turnoDe: string; // ID do jogador que deve jogar agora
   jogadores: Record<string, Jogador>; // Dicionário de jogadores indexado pelo ID
   mesa: { jogadorId: string; carta: Carta }[]; // Cartas jogadas na vaza atual
+  chat?: Record<string, { autor: string; texto: string; timestamp: number }>;
 }

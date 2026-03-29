@@ -1,9 +1,9 @@
 // src/app/sala/[id]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { ref, onValue, off, update } from 'firebase/database';
+import { ref, onValue, off, update, push } from 'firebase/database';
 import { db } from '../../../lib/firebase';
 import { Sala } from '../../../types/game';
 import { criarBaralho, embaralhar, distribuirCartas } from '../../../utils/engine';
@@ -16,6 +16,11 @@ export default function SalaDeJogo() {
   const jogadorId = searchParams.get('jogadorId');
 
   const [sala, setSala] = useState<Sala | null>(null);
+  
+  // Novos estados para o Chat
+  const [novaMensagem, setNovaMensagem] = useState('');
+  const [chatAbertoMobile, setChatAbertoMobile] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!salaId) return;
@@ -26,6 +31,11 @@ export default function SalaDeJogo() {
     });
     return () => { off(salaRef); unsubscribe(); };
   }, [salaId]);
+
+  // Rola o chat para baixo automaticamente quando chega mensagem
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [sala?.chat]);
 
   if (!sala) {
     return (
@@ -38,6 +48,7 @@ export default function SalaDeJogo() {
   const jogadorAtual = sala.jogadores[jogadorId || ''];
   const ehHost = jogadorId === 'host'; 
 
+  // --- FUNÇÕES DO JOGO ---
   const iniciarPartida = async () => {
     if (!sala || !salaId) return;
     const baralho = embaralhar(criarBaralho());
@@ -68,84 +79,111 @@ export default function SalaDeJogo() {
     catch (error) { console.error("Erro ao fazer promessa:", error); }
   };
 
+  // --- FUNÇÕES EXTRAS (Chat e Compartilhar) ---
+  const copiarLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    alert('Link copiado! Mande para seus amigos no WhatsApp.');
+  };
+
+  const enviarMensagem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novaMensagem.trim() || !salaId) return;
+    
+    try {
+      await push(ref(db, `salas/${salaId}/chat`), {
+        autor: jogadorAtual?.nome || 'Espectador',
+        texto: novaMensagem.trim(),
+        timestamp: Date.now()
+      });
+      setNovaMensagem('');
+    } catch (error) {
+      console.error("Erro ao enviar mensagem", error);
+    }
+  };
+
   const precisaFazerPromessa = sala.status === 'apostando' && (jogadorAtual?.promessa === undefined || jogadorAtual?.promessa === -1);
   const fezPromessa = typeof jogadorAtual?.promessa === 'number' && jogadorAtual.promessa >= 0;
+
+  // Renderização das mensagens do chat transformando o objeto do Firebase em Array ordenado
+  const mensagensChat = sala.chat ? Object.values(sala.chat).sort((a: any, b: any) => a.timestamp - b.timestamp) : [];
 
   return (
     <main className="h-screen w-screen bg-slate-900 flex flex-col overflow-hidden text-slate-100 font-sans relative">
       
-      {/* CABEÇALHO UNIFICADO E GRUPADO NO CENTRO */}
-      <header className="w-full bg-slate-800 border-b border-slate-700 px-4 py-2 flex items-center z-20 shadow-md flex-shrink-0">
+      {/* CABEÇALHO */}
+      <header className="w-full bg-slate-800 border-b border-slate-700 px-4 py-2 flex items-center justify-between z-20 shadow-md flex-shrink-0">
         
-        {/* Container Centralizado com gap fixo */}
-        <div className="flex items-center justify-center mx-auto gap-4 md:gap-10 px-4 py-1 bg-slate-900 rounded-full border border-slate-700 shadow-inner">
-          
-          {/* Bloco Título */}
-          <div className="flex flex-col flex-shrink-0 px-2">
-            <h1 className="text-xl font-black italic text-emerald-400 leading-tight select-none">A PROMESSA</h1>
-            <span className="text-[11px] text-slate-400 font-mono -mt-1 select-all">ID: {salaId}</span>
-          </div>
+        <div className="flex flex-col flex-shrink-0 px-2">
+          <h1 className="text-xl font-black italic text-emerald-400 leading-tight select-none">A PROMESSA</h1>
+          <span className="text-[11px] text-slate-400 font-mono -mt-1 select-all">ID: {salaId}</span>
+        </div>
 
-          {/* Divisor Vertical */}
+        <div className="flex items-center gap-4">
           {sala.status !== 'aguardando' && sala.manilha && (
-              <div className="w-px h-8 bg-slate-700" />
-          )}
-
-          {/* Bloco Manilha */}
-          {sala.status !== 'aguardando' && sala.manilha && (
-            <div className="flex items-center gap-1.5 px-2 select-none">
+            <div className="hidden md:flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-md border border-slate-700 select-none">
               <span className="text-[11px] text-slate-400 uppercase tracking-widest">Manilha</span>
-              <span className="text-xl md:text-2xl font-extrabold text-yellow-400 leading-none">{sala.manilha}</span>
+              <span className="text-xl font-extrabold text-yellow-400 leading-none">{sala.manilha}</span>
             </div>
           )}
 
-          {/* Divisor Vertical */}
-          <div className="w-px h-8 bg-slate-700" />
-
-          {/* Bloco Suas Informações */}
-          <div className="flex items-center gap-2 px-1 select-none">
+          <div className="flex items-center gap-2 px-1 select-none bg-slate-900/60 p-1 rounded-full border border-slate-700">
               <div className="text-right flex flex-col items-end leading-tight pr-1">
-                  <span className="font-extrabold text-sm md:text-base text-white whitespace-nowrap">{jogadorAtual?.nome}</span>
+                  <span className="font-extrabold text-sm text-white whitespace-nowrap">{jogadorAtual?.nome}</span>
                   <span className="text-[11px] text-emerald-400 font-bold -mt-0.5">Vidas: {jogadorAtual?.vidas}</span>
               </div>
-              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-slate-700 border border-emerald-400 flex items-center justify-center text-emerald-400 font-bold flex-shrink-0 shadow">
+              <div className="w-8 h-8 rounded-full bg-slate-700 border border-emerald-400 flex items-center justify-center text-emerald-400 font-bold flex-shrink-0 shadow">
                   {jogadorAtual?.nome[0].toUpperCase()}
               </div>
           </div>
 
+          {/* Botão de abrir Chat no Mobile */}
+          <button onClick={() => setChatAbertoMobile(!chatAbertoMobile)} className="lg:hidden bg-slate-700 p-2 rounded-lg text-xl border border-slate-600">
+            💬
+          </button>
         </div>
       </header>
 
-      {/* ÁREA DA MESA COM GRID PARA EVITAR SOBREPOSIÇÃO */}
-      <div className="flex-1 w-full max-w-7xl mx-auto p-2 md:p-6 flex flex-col relative z-0">
-        <div className="w-full h-full bg-emerald-800 rounded-[2rem] md:rounded-[4rem] border-[6px] md:border-8 border-slate-700 shadow-inner flex flex-col relative overflow-hidden">
+      {/* CONTAINER PRINCIPAL (Mesa Esquerda + Chat Direita) */}
+      <div className="flex-1 w-full max-w-[1600px] mx-auto p-2 md:p-4 flex gap-4 relative z-0 overflow-hidden h-full">
+        
+        {/* === ÁREA DA MESA (Feltro Verde) === */}
+        <div className="flex-1 h-full bg-emerald-800 rounded-[2rem] md:rounded-[3rem] border-[6px] md:border-8 border-slate-700 shadow-inner flex flex-col relative overflow-hidden transition-all">
 
           {sala.status === 'aguardando' ? (
-            <div className="m-auto text-center bg-slate-900/60 p-6 md:p-10 rounded-3xl backdrop-blur-md z-10">
-              <h3 className="text-2xl md:text-3xl font-bold mb-2">Aguardando jogadores</h3>
-              <p className="text-slate-300 mb-6 text-sm md:text-base">A mesa está sendo preparada.</p>
-              {ehHost ? (
-                <button onClick={iniciarPartida} className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black py-3 px-8 rounded-xl text-lg shadow-[0_4px_0_rgb(4,120,87)] active:translate-y-1 active:shadow-none transition-all">
-                  Começar Jogo
+            <div className="m-auto text-center bg-slate-900/70 p-6 md:p-10 rounded-3xl backdrop-blur-md z-10 border border-slate-700/50 shadow-2xl">
+              <h3 className="text-2xl md:text-3xl font-bold mb-2">Lobby da Partida</h3>
+              <p className="text-slate-300 mb-6 text-sm md:text-base">Aguardando a galera entrar...</p>
+              
+              <div className="flex flex-col gap-3 items-center">
+                {/* NOVO BOTÃO DE COMPARTILHAR */}
+                <button onClick={copiarLink} className="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold py-3 px-6 rounded-xl text-sm md:text-base border border-emerald-500/30 shadow-md active:scale-95 transition-all flex items-center gap-2 w-full justify-center">
+                  <span>📋</span> Copiar Link Convite
                 </button>
-              ) : (
-                <p className="text-emerald-400 font-bold animate-pulse">Aguardando host...</p>
-              )}
-              <div className="mt-8 flex flex-wrap justify-center gap-2 overflow-y-auto max-h-[150px] p-2">
+
+                {ehHost ? (
+                  <button onClick={iniciarPartida} className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black py-4 px-8 rounded-xl text-lg shadow-[0_4px_0_rgb(4,120,87)] active:translate-y-1 active:shadow-none transition-all w-full">
+                    Distribuir e Começar
+                  </button>
+                ) : (
+                  <p className="text-yellow-400 font-bold animate-pulse py-2">Aguardando o host iniciar...</p>
+                )}
+              </div>
+
+              <div className="mt-8 flex flex-wrap justify-center gap-2 overflow-y-auto max-h-[150px] p-2 bg-slate-950/30 rounded-2xl">
                 {Object.values(sala.jogadores).map((jog) => (
-                  <span key={jog.id} className="bg-slate-800 px-3 py-1.5 rounded-full text-xs md:text-sm font-bold flex items-center gap-2 overflow-hidden flex-shrink-0 shadow-md border border-slate-700/50">
+                  <span key={jog.id} className="bg-slate-800 px-3 py-1.5 rounded-full text-xs md:text-sm font-bold flex items-center gap-2 shadow-md border border-slate-700/50">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="truncate max-w-[100px]">{jog.nome}</span> {jog.id === jogadorId ? <span className="text-emerald-500 font-normal">(Você)</span> : ''}
+                    <span className="truncate max-w-[120px]">{jog.nome}</span> {jog.id === jogadorId ? <span className="text-emerald-500 font-normal">(Você)</span> : ''}
                   </span>
                 ))}
               </div>
             </div>
           ) : (
             /* O JOGO EM SI DIVIDIDO EM 3 FAIXAS (LINHAS) */
-            <div className="flex-1 w-full h-full flex flex-col justify-between p-4 md:p-8 relative">
+            <div className="flex-1 w-full h-full flex flex-col justify-between p-4 relative">
               
               {/* LINHA 1: OPONENTES (TOPO) */}
-              <div className="h-[30%] w-full flex justify-center items-start gap-4 md:gap-16 relative z-0">
+              <div className="h-[30%] w-full flex justify-center items-start gap-4 md:gap-16 relative z-0 pt-2">
                 {Object.values(sala.jogadores).filter(j => j.id !== jogadorId).map(oponente => (
                   <div key={oponente.id} className="flex flex-col items-center">
                     <div className="flex justify-center h-20 md:h-28">
@@ -155,7 +193,6 @@ export default function SalaDeJogo() {
                         </div>
                       ))}
                     </div>
-                    {/* Badge Oponente Simplificada */}
                     <div className="bg-slate-900/80 px-3 py-1 rounded-lg text-center mt-[-10px] md:mt-[-5px] z-10 border border-slate-600/50 shadow-lg">
                       <p className="font-bold text-[10px] md:text-xs leading-tight truncate max-w-[80px] text-white">{oponente.nome}</p>
                       {typeof oponente.promessa === 'number' && oponente.promessa >= 0 ? (
@@ -170,48 +207,49 @@ export default function SalaDeJogo() {
 
               {/* LINHA 2: CENTRO DA MESA (VIRA E BARALHO) */}
               <div className="h-[40%] w-full flex items-center justify-center relative z-0">
-                <div className="flex items-center gap-4 bg-emerald-900/40 p-3 md:p-6 rounded-[2rem] border border-emerald-700/50 relative">
+                <div className="flex items-center gap-4 bg-emerald-900/40 p-4 md:p-6 rounded-[2rem] border border-emerald-700/50 relative">
                   <div className="flex flex-col items-center">
-                    <span className="text-yellow-400 font-bold text-[10px] md:text-xs tracking-widest mb-1 md:mb-2 select-none">VIRA</span>
-                    <div className="transform scale-75 md:scale-90"><Carta carta={sala.vira!} shadow-xl /></div>
+                    <span className="text-yellow-400 font-bold text-[10px] md:text-xs tracking-widest mb-1 select-none">VIRA</span>
+                    <div className="transform scale-[0.65] md:scale-90"><Carta carta={sala.vira!} shadow-xl /></div>
                   </div>
                   <div className="flex flex-col items-center opacity-80">
-                    <span className="text-emerald-200 font-bold text-[10px] md:text-xs tracking-widest mb-1 md:mb-2 select-none">MESA</span>
-                    <div className="transform scale-75 md:scale-90 relative">
+                    <span className="text-emerald-200 font-bold text-[10px] md:text-xs tracking-widest mb-1 select-none">MESA</span>
+                    <div className="transform scale-[0.65] md:scale-90 relative">
                       <Carta virada={true} className="absolute top-1 left-1 opacity-50" />
                       <Carta virada={true} className="relative z-10 shadow-lg" />
                     </div>
                   </div>
                 </div>
-
-                {/* PAINEL DE PROMESSA FLUTUANTE */}
-                {precisaFazerPromessa && (
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 bg-slate-900 p-4 md:p-6 rounded-2xl shadow-2xl border-2 border-yellow-500 flex flex-col items-center gap-3 w-[90%] max-w-[320px] animate-bounce-in">
-                    <p className="text-yellow-400 font-black uppercase text-sm md:text-base text-center">Sua vez de prometer</p>
-                    <div className="flex justify-center gap-2 flex-wrap">
-                      {Array.from({ length: sala.rodadaAtual + 1 }).map((_, i) => (
-                        <button key={i} onClick={() => fazerPromessa(i)} className="w-12 h-12 md:w-14 md:h-14 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-black text-xl rounded-xl shadow-[0_4px_0_rgb(161,98,7)] active:translate-y-1 active:shadow-none transition-all">
-                          {i}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* LINHA 3: SUA MÃO (BASE) - MODIFICADO PARA HORIZONTAL E CORES DO OPONENTE */}
-              <div className="h-[30%] w-full flex items-end justify-center relative z-10 mt-auto px-4 pb-2 md:pb-4 gap-4 md:gap-6">
+              {/* LINHA 3: SUA MÃO (BASE) */}
+              <div className="h-[30%] w-full flex items-end justify-center relative z-10 mt-auto pb-2 gap-4">
                 
-                {/* Badge da promessa no LADO ESQUERDO (Ancorado no pé da tela) */}
+                {/* Badge da promessa - LADO ESQUERDO */}
                 {fezPromessa && (
-                  <div className="bg-slate-900/80 px-3 py-1.5 rounded-lg text-center border border-slate-600/50 shadow-xl self-end mb-1 md:mb-0">
+                  <div className="hidden md:block bg-slate-900/80 px-3 py-1.5 rounded-lg text-center border border-slate-600/50 shadow-xl self-end mb-2">
                     <p className="font-bold text-[10px] md:text-xs text-white">Sua Promessa</p>
                     <p className="text-yellow-400 text-[9px] md:text-[10px] uppercase font-black">Você Faz: {jogadorAtual.promessa}</p>
                   </div>
                 )}
 
-                {/* Contêiner das cartas (Abaixado e Centralizado) */}
-                <div className="flex justify-center h-24 md:h-36 items-end origin-bottom scale-[0.8] md:scale-100 mt-auto">
+                {/* Contêiner das cartas */}
+                <div className="flex justify-center h-24 md:h-36 items-end origin-bottom scale-[0.8] md:scale-100 relative">
+                  
+                  {/* === O MODAL REPOSICIONADO PARA PERTO DA CARTA === */}
+                  {precisaFazerPromessa && (
+                    <div className="absolute bottom-[110%] md:bottom-1/2 md:translate-y-[-20%] left-[80%] md:left-[110%] z-50 bg-slate-900 p-4 rounded-2xl shadow-2xl border-2 border-yellow-500 flex flex-col items-center gap-2 animate-bounce-in w-max">
+                      <p className="text-yellow-400 font-black uppercase text-xs text-center leading-tight">Quantas você faz?</p>
+                      <div className="flex justify-center gap-1.5 flex-wrap max-w-[150px]">
+                        {Array.from({ length: sala.rodadaAtual + 1 }).map((_, i) => (
+                          <button key={i} onClick={() => fazerPromessa(i)} className="w-10 h-10 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-black text-lg rounded-xl shadow-[0_4px_0_rgb(161,98,7)] active:translate-y-1 active:shadow-none transition-all">
+                            {i}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {jogadorAtual?.cartas?.map((carta, index) => (
                     <div key={index} className={`transform transition-transform hover:-translate-y-4 cursor-pointer ${index > 0 ? '-ml-8 md:-ml-12' : ''}`}>
                       <Carta carta={carta} virada={sala.rodadaAtual === 1} className="shadow-[0_-10px_20px_rgba(0,0,0,0.3)]" />
@@ -219,14 +257,68 @@ export default function SalaDeJogo() {
                   ))}
                 </div>
 
-                {/* Placeholder para balancear o Flex no lado direito se necessário (opcional) */}
-                {fezPromessa && <div className="w-[80px] hidden md:block" />}
+                {/* Badge mobile fica à direita para balancear */}
+                {fezPromessa && (
+                  <div className="md:hidden bg-slate-900/80 px-2 py-1 rounded-lg text-center border border-slate-600/50 shadow-xl self-end mb-1">
+                    <p className="font-bold text-[9px] text-white">Promessa</p>
+                    <p className="text-yellow-400 text-[10px] uppercase font-black">Faz: {jogadorAtual.promessa}</p>
+                  </div>
+                )}
 
               </div>
 
             </div>
           )}
         </div>
+
+        {/* === PAINEL DE CHAT (Lateral) === */}
+        {/* No Desktop ele é fixo na direita. No Mobile ele desliza por cima da tela. */}
+        <div className={`
+          absolute lg:relative top-0 right-0 h-full w-[85%] sm:w-80 bg-slate-800 lg:rounded-[2rem] border-l lg:border-[6px] border-slate-700 flex flex-col shadow-2xl transition-transform z-40
+          ${chatAbertoMobile ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+        `}>
+          {/* Header do Chat */}
+          <div className="bg-slate-900/50 p-4 border-b border-slate-700 flex justify-between items-center">
+            <h3 className="font-black text-emerald-400 italic">Chat da Mesa</h3>
+            <button onClick={() => setChatAbertoMobile(false)} className="lg:hidden text-slate-400 hover:text-white font-bold text-xl">✕</button>
+          </div>
+
+          {/* Área de Mensagens */}
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 scroll-smooth">
+            {mensagensChat.length === 0 ? (
+              <p className="text-center text-slate-500 text-sm italic mt-4">Nenhuma mensagem ainda. Mande um salve!</p>
+            ) : (
+              mensagensChat.map((msg: any, i: number) => {
+                const souEu = msg.autor === jogadorAtual?.nome;
+                return (
+                  <div key={i} className={`flex flex-col ${souEu ? 'items-end' : 'items-start'}`}>
+                    <span className="text-[10px] text-slate-400 mb-0.5 px-1">{msg.autor}</span>
+                    <div className={`px-3 py-2 rounded-xl text-sm max-w-[85%] ${souEu ? 'bg-emerald-600 text-white rounded-tr-sm' : 'bg-slate-700 text-slate-100 rounded-tl-sm'}`}>
+                      {msg.texto}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+            {/* Div fantasma para forçar o scroll para baixo */}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Input de Mensagem */}
+          <form onSubmit={enviarMensagem} className="p-3 bg-slate-900 border-t border-slate-700 flex gap-2">
+            <input 
+              type="text" 
+              value={novaMensagem}
+              onChange={(e) => setNovaMensagem(e.target.value)}
+              placeholder="Digite aqui..."
+              className="flex-1 bg-slate-800 text-white text-sm rounded-lg px-3 py-2 border border-slate-600 focus:border-emerald-500 focus:outline-none"
+            />
+            <button type="submit" className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black px-4 rounded-lg active:scale-95 transition-all">
+              ➤
+            </button>
+          </form>
+        </div>
+
       </div>
     </main>
   );

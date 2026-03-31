@@ -1,6 +1,6 @@
 # 🃏 A Promessa - Jogo de Cartas Online
 
-Um jogo de cartas multiplayer em tempo real inspirado no clássico "Foda-se / Oh Hell". Blefe, estratégia e a regra de ouro: na primeira rodada, sua carta fica na testa!
+Um jogo de cartas multiplayer em tempo real. Blefe, estratégia e a regra de ouro: na primeira rodada, sua carta fica na testa!
 
 ## 🎮 Como Funciona o Jogo
 
